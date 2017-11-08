@@ -11,6 +11,13 @@ import Cocoa
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
 
+    // MARK: - Constants
+    
+    let UPDATE_TIME_SECONDS = 30.0
+    let COMMODITIES = ["BTC-USD", "ETH-USD"]
+    
+    // MARK: - Class Properties
+    
     var statusBar = NSStatusBar.system
     var statusBarItem : NSStatusItem = NSStatusItem()
     var menu: NSMenu = NSMenu()
@@ -23,15 +30,49 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         
-        ticker = Ticker(secInterval: 30) {
+        // Init references to stats tickers
+        var stats: [String: [NSMenuItem]] = [:]
+        for c in COMMODITIES {
+            let header = NSMenuItem(title: c + " (24HR)", action: nil, keyEquivalent: "")
+            let open = NSMenuItem(title: "Open: Loading", action: nil, keyEquivalent: "")
+            let high = NSMenuItem(title: "High: Loading", action: nil, keyEquivalent: "")
+            let low = NSMenuItem(title: "Low: Loading", action: nil, keyEquivalent: "")
+            
+            stats[c] = [open, high, low]
+            
+            // Add to menu items
+            self.menu.addItem(header)
+            self.menu.addItem(NSMenuItem.separator())
+            for i in stats[c]! { self.menu.addItem(i) }
+            self.menu.addItem(NSMenuItem.separator())
+        }
+        
+        // Init ticker and designate callback behavior
+        ticker = Ticker(secInterval: UPDATE_TIME_SECONDS, commodities: COMMODITIES) {
+            
+            // Price Tickers
             if let btc = self.ticker.prices["BTC-USD"] {
                 self.priceBTC = "₿ " + btc
             }
             if let eth = self.ticker.prices["ETH-USD"] {
                 self.priceETH = "Ξ " + eth
             }
+            
+            // Stats Tickers
+            for k in self.ticker.stats.keys {
+                if let d = self.ticker.stats[k], let o = d["open"], let h = d["high"], let l = d["low"] {
+                    if let menuItems = stats[k] {
+                        menuItems[0].title = "Open: " + o
+                        menuItems[1].title = "High: " + h
+                        menuItems[2].title = "Low: " + l
+                    }
+                }
+            }
+            
+            // Update UI
             DispatchQueue.main.async {
                 self.statusBarItem.title = self.priceBTC + " | " + self.priceETH
+                self.menu.update()
             }
         }
         ticker.start()

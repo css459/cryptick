@@ -12,3 +12,5 @@ There are two buttons provided in the menu item: one to quit the app,
 and one to open GDAX in your default browser.
 
 Enjoy!
+
+[Icon Source](http://imgarcade.com/bitcoin-icon.html)

@@ -10,17 +10,28 @@ import Cocoa
 
 class Ticker: NSObject {
     
+    // MARK: - Class Properties
+    
     private var tickTimer: Timer?
     private let inter: Double!
     private let callback: () -> Void!
-    var prices: [String: String]
+    private let commodities: [String]
     
-    init(secInterval: Double, tickCallback: @escaping () -> Void) {
+    var prices: [String: String]
+    var stats: [String : Dictionary<String, String>]
+    
+    // MARK: - Initializers
+    
+    init(secInterval: Double, commodities: [String], tickCallback: @escaping () -> Void) {
         self.prices = [:]
+        self.stats = [:]
+        self.commodities = commodities
         self.inter = secInterval
         self.callback = tickCallback
         super.init()
     }
+    
+    // MARK: - Public Control Methods
     
     func start() {
         tickTimer = Timer.scheduledTimer(timeInterval: TimeInterval(inter),
@@ -37,13 +48,23 @@ class Ticker: NSObject {
         t.invalidate()
     }
     
+    // MARK: - Timer Methods
+    
     @objc private func tick() {
-        self.updatePrices(commodity: "BTC-USD") {
-            self.updatePrices(commodity: "ETH-USD") {
-                self.callback()
+        // Use a semaphore to know when all data for all commods is in
+        let semaphore = DispatchSemaphore(value: self.commodities.count)
+        for c in commodities {
+            self.updatePrices(commodity: c) {
+                self.updateStats(commodity: c) {
+                    semaphore.signal()
+                }
             }
         }
+        semaphore.wait()
+        callback()
     }
+    
+    // MARK: - HTTP Methods
     
     private func updatePrices(commodity: String, completion: @escaping () -> Void) {
         let url = URL(string: "https://api.gdax.com/products/" + commodity + "/ticker")!
@@ -61,6 +82,36 @@ class Ticker: NSObject {
                     self.prices[commodity] = String(format: "%.2f", p)
                     completion()
                 }
+            } catch {
+                print(error.localizedDescription)
+                self.prices[commodity] = "Error"
+                completion()
+            }
+        }
+        
+        task.resume()
+    }
+    
+    private func updateStats(commodity: String, completion: @escaping () -> Void) {
+        let url = URL(string: "https://api.gdax.com/products/" + commodity + "/stats")!
+        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+            
+            guard let data = data, error == nil else {
+                self.prices[commodity] = "Error"
+                completion()
+                return
+            }
+            
+            do {
+                if var dict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: String] {
+                    for (k, v) in dict {
+                        if let p = Float(v) {
+                            dict[k]! = String(format: "%.2f", p)
+                        }
+                    }
+                    self.stats[commodity] = dict
+                }
+                completion()
             } catch {
                 print(error.localizedDescription)
                 self.prices[commodity] = "Error"
