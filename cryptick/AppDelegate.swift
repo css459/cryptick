@@ -76,6 +76,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         ticker.start()
+        ticker.tick()
         
         // Add statusBarItem
         statusBarItem = statusBar.statusItem(withLength: -1)

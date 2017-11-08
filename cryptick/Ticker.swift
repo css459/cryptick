@@ -50,7 +50,7 @@ class Ticker: NSObject {
     
     // MARK: - Timer Methods
     
-    @objc private func tick() {
+    @objc func tick() {
         // Use a semaphore to know when all data for all commods is in
         let semaphore = DispatchSemaphore(value: self.commodities.count)
         for c in commodities {
