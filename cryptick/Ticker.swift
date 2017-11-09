@@ -17,17 +17,21 @@ class Ticker: NSObject {
     private let callback: () -> Void!
     private let commodities: [String]
     
+    var isPriceUp: [String: Bool]
     var prices: [String: String]
     var stats: [String : Dictionary<String, String>]
+    var lastUpdate: Date?
     
     // MARK: - Initializers
     
     init(secInterval: Double, commodities: [String], tickCallback: @escaping () -> Void) {
         self.prices = [:]
+        self.isPriceUp = [:]
         self.stats = [:]
         self.commodities = commodities
         self.inter = secInterval
         self.callback = tickCallback
+        self.lastUpdate = nil
         super.init()
     }
     
@@ -61,6 +65,7 @@ class Ticker: NSObject {
             }
         }
         semaphore.wait()
+        lastUpdate = Date()
         callback()
     }
     
@@ -79,6 +84,13 @@ class Ticker: NSObject {
             do {
                 let dict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
                 if let price = dict?["price"] as? String, let p = Float(price) {
+                    
+                    // Did price go up or down
+                    if let pPrev = self.prices[commodity], let pp = Float(pPrev) {
+                        self.isPriceUp[commodity] = pp < p
+                    }
+                
+                    // Update Prices
                     self.prices[commodity] = String(format: "%.2f", p)
                     completion()
                 }

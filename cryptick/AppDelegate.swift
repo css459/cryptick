@@ -27,8 +27,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     var priceBTC = "Loading"
     var priceETH = "Loading"
+    var btcUp = false
+    var ethUp = false
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        
+        // Init Last Update
+        let lastUpdate = NSMenuItem(title: "Last Update:", action: nil, keyEquivalent: "")
+        self.menu.addItem(lastUpdate)
+        self.menu.addItem(NSMenuItem.separator())
         
         // Init references to stats tickers
         var stats: [String: [NSMenuItem]] = [:]
@@ -50,12 +57,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Init ticker and designate callback behavior
         ticker = Ticker(secInterval: UPDATE_TIME_SECONDS, commodities: COMMODITIES) {
             
+            // Update Last Update
+            if let d = self.ticker.lastUpdate {
+                let calendar = Calendar.current
+                let hour = calendar.component(.hour, from: d)
+                let minutes = calendar.component(.minute, from: d)
+                let seconds = calendar.component(.second, from: d)
+                lastUpdate.title = String(format: "Last Updated %02d:%02d:%02d", hour, minutes, seconds)
+            }
+            
             // Price Tickers
             if let btc = self.ticker.prices["BTC-USD"] {
                 self.priceBTC = "₿ " + btc
+                if let up = self.ticker.isPriceUp["BTC-USD"] {
+                    self.btcUp = up
+                    if up {
+                        self.priceBTC += " ▴"
+                    } else {
+                        self.priceBTC += " ▾"
+                    }
+                }
             }
             if let eth = self.ticker.prices["ETH-USD"] {
                 self.priceETH = "Ξ " + eth
+                if let up = self.ticker.isPriceUp["ETH-USD"] {
+                    self.ethUp = up
+                    if up {
+                        self.priceETH += " ▴"
+                    } else {
+                        self.priceETH += " ▾"
+                    }
+                }
             }
             
             // Stats Tickers
@@ -71,7 +103,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             // Update UI
             DispatchQueue.main.async {
-                self.statusBarItem.title = self.priceBTC + " | " + self.priceETH
+                self.updateMenuLabel(colored: false)
                 self.menu.update()
             }
         }
@@ -101,6 +133,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func openGDAX() {
         if let url = URL(string: "https://www.gdax.com/trade/BTC-USD") {
             NSWorkspace.shared.open(url)
+        }
+    }
+    
+    func updateMenuLabel(colored: Bool) {
+        let title = self.priceBTC + " | " + self.priceETH
+        let attrTitle = NSMutableAttributedString(string: title)
+        
+        if colored {
+            
+            let titleRange = (title as NSString).range(of: title)
+            let btcRange = (title as NSString).range(of: self.priceBTC)
+            let ethRange = (title as NSString).range(of: self.priceETH)
+            
+            if btcUp {
+                attrTitle.addAttribute(.foregroundColor, value: NSColor.systemGreen, range: btcRange)
+            } else {
+                attrTitle.addAttribute(.foregroundColor, value: NSColor.red, range: btcRange)
+            }
+            
+            if ethUp {
+                attrTitle.addAttribute(.foregroundColor, value: NSColor.green, range: ethRange)
+            } else {
+                attrTitle.addAttribute(.foregroundColor, value: NSColor.red, range: ethRange)
+            }
+            
+            attrTitle.addAttribute(.font, value: NSFont.systemFont(ofSize: 14.0), range: titleRange)
+            statusBarItem.attributedTitle = attrTitle
+            
+        } else {
+            statusBarItem.title = title
         }
     }
 }
