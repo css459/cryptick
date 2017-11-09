@@ -11,6 +11,7 @@
 		491C1A7F1FB275E9004C6E36 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 491C1A7E1FB275E9004C6E36 /* Assets.xcassets */; };
 		491C1A821FB275E9004C6E36 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 491C1A801FB275E9004C6E36 /* Main.storyboard */; };
 		491E28FC1FB2AC3E009EF097 /* Ticker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 491E28FB1FB2AC3E009EF097 /* Ticker.swift */; };
+		497236E11FB4F47600351D15 /* Commodity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 497236E01FB4F47600351D15 /* Commodity.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +22,7 @@
 		491C1A831FB275E9004C6E36 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		491C1A841FB275E9004C6E36 /* cryptick.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = cryptick.entitlements; sourceTree = "<group>"; };
 		491E28FB1FB2AC3E009EF097 /* Ticker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ticker.swift; sourceTree = "<group>"; };
+		497236E01FB4F47600351D15 /* Commodity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Commodity.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -54,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				491C1A7A1FB275E9004C6E36 /* AppDelegate.swift */,
+				497236E01FB4F47600351D15 /* Commodity.swift */,
 				491E28FB1FB2AC3E009EF097 /* Ticker.swift */,
 				491C1A7E1FB275E9004C6E36 /* Assets.xcassets */,
 				491C1A801FB275E9004C6E36 /* Main.storyboard */,
@@ -141,6 +144,7 @@
 			files = (
 				491E28FC1FB2AC3E009EF097 /* Ticker.swift in Sources */,
 				491C1A7B1FB275E9004C6E36 /* AppDelegate.swift in Sources */,
+				497236E11FB4F47600351D15 /* Commodity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

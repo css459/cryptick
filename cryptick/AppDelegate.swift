@@ -13,8 +13,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Constants
     
-    let UPDATE_TIME_SECONDS = 30.0
-    let COMMODITIES = ["BTC-USD", "ETH-USD"]
+    let UPDATE_TIME_SECONDS = 3.0
+    let COMMODITIES = [("BTC-USD", "₿"), ("ETH-USD", "Ξ")]
+    let COLORED_TICKER = true
     
     // MARK: - Class Properties
     
@@ -24,96 +25,58 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var menuItem : NSMenuItem = NSMenuItem()
     
     var ticker: Ticker!
-    
-    var priceBTC = "Loading"
-    var priceETH = "Loading"
-    var btcUp = false
-    var ethUp = false
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         
-        // Init Last Update
-        let lastUpdate = NSMenuItem(title: "Last Update:", action: nil, keyEquivalent: "")
-        self.menu.addItem(lastUpdate)
-        self.menu.addItem(NSMenuItem.separator())
+        var menuStats = [[NSMenuItem]]()
         
         // Init references to stats tickers
-        var stats: [String: [NSMenuItem]] = [:]
         for c in COMMODITIES {
-            let header = NSMenuItem(title: c + " (24HR)", action: nil, keyEquivalent: "")
-            let open = NSMenuItem(title: "Open: Loading", action: nil, keyEquivalent: "")
+            let header = NSMenuItem(title: c.0 + " (24HR)", action: nil, keyEquivalent: "")
+            let open = NSMenuItem(title: "Open: Loading" , action: nil, keyEquivalent: "")
             let high = NSMenuItem(title: "High: Loading", action: nil, keyEquivalent: "")
             let low = NSMenuItem(title: "Low: Loading", action: nil, keyEquivalent: "")
             
-            stats[c] = [open, high, low]
+            menuStats.append([open, high, low])
             
             // Add to menu items
             self.menu.addItem(header)
             self.menu.addItem(NSMenuItem.separator())
-            for i in stats[c]! { self.menu.addItem(i) }
+            self.menu.addItem(open)
+            self.menu.addItem(high)
+            self.menu.addItem(low)
             self.menu.addItem(NSMenuItem.separator())
         }
         
         // Init ticker and designate callback behavior
         ticker = Ticker(secInterval: UPDATE_TIME_SECONDS, commodities: COMMODITIES) {
             
-            // Update Last Update
-            if let d = self.ticker.lastUpdate {
-                let calendar = Calendar.current
-                let hour = calendar.component(.hour, from: d)
-                let minutes = calendar.component(.minute, from: d)
-                let seconds = calendar.component(.second, from: d)
-                lastUpdate.title = String(format: "Last Updated %02d:%02d:%02d", hour, minutes, seconds)
-            }
-            
-            // Price Tickers
-            if let btc = self.ticker.prices["BTC-USD"] {
-                self.priceBTC = "₿ " + btc
-                if let up = self.ticker.isPriceUp["BTC-USD"] {
-                    self.btcUp = up
-                    if up {
-                        self.priceBTC += " ▴"
-                    } else {
-                        self.priceBTC += " ▾"
-                    }
-                }
-            }
-            if let eth = self.ticker.prices["ETH-USD"] {
-                self.priceETH = "Ξ " + eth
-                if let up = self.ticker.isPriceUp["ETH-USD"] {
-                    self.ethUp = up
-                    if up {
-                        self.priceETH += " ▴"
-                    } else {
-                        self.priceETH += " ▾"
-                    }
-                }
-            }
-            
-            // Stats Tickers
-            for k in self.ticker.stats.keys {
-                if let d = self.ticker.stats[k], let o = d["open"], let h = d["high"], let l = d["low"] {
-                    if let menuItems = stats[k] {
-                        menuItems[0].title = "Open: " + o
-                        menuItems[1].title = "High: " + h
-                        menuItems[2].title = "Low: " + l
-                    }
-                }
-            }
-            
             // Update UI
             DispatchQueue.main.async {
-                self.updateMenuLabel(colored: false)
-                self.menu.update()
+                for m in menuStats {
+                    // TODO
+                }
+                if self.COLORED_TICKER {
+                    self.statusBarItem.attributedTitle = self.ticker.getAttributedLabel()
+                } else {
+                    self.statusBarItem.title = self.ticker.getLabel()
+                }
             }
         }
+        
+        // Init Last Update
+        let lastUpdate = NSMenuItem(title: "Last Update: " + ticker.getLastUpdate(), action: nil, keyEquivalent: "")
+        menu.addItem(lastUpdate)
+        menu.addItem(NSMenuItem.separator())
+
+        // Start ticker
         ticker.start()
         ticker.tick()
         
         // Add statusBarItem
         statusBarItem = statusBar.statusItem(withLength: -1)
+        statusBarItem.title = ticker.getLabel()
         statusBarItem.menu = menu
-        statusBarItem.title = self.priceBTC + " | " + self.priceETH
         
         // Add Menu Item (Quit and Open GDAX)
         let quitItem = NSMenuItem(title: "Quit", action: #selector(AppDelegate.quit), keyEquivalent: "")
@@ -123,7 +86,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
-        self.ticker.stop()
+        ticker.stop()
     }
     
     @objc func quit() {
@@ -133,36 +96,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func openGDAX() {
         if let url = URL(string: "https://www.gdax.com/trade/BTC-USD") {
             NSWorkspace.shared.open(url)
-        }
-    }
-    
-    func updateMenuLabel(colored: Bool) {
-        let title = self.priceBTC + " | " + self.priceETH
-        let attrTitle = NSMutableAttributedString(string: title)
-        
-        if colored {
-            
-            let titleRange = (title as NSString).range(of: title)
-            let btcRange = (title as NSString).range(of: self.priceBTC)
-            let ethRange = (title as NSString).range(of: self.priceETH)
-            
-            if btcUp {
-                attrTitle.addAttribute(.foregroundColor, value: NSColor.systemGreen, range: btcRange)
-            } else {
-                attrTitle.addAttribute(.foregroundColor, value: NSColor.red, range: btcRange)
-            }
-            
-            if ethUp {
-                attrTitle.addAttribute(.foregroundColor, value: NSColor.green, range: ethRange)
-            } else {
-                attrTitle.addAttribute(.foregroundColor, value: NSColor.red, range: ethRange)
-            }
-            
-            attrTitle.addAttribute(.font, value: NSFont.systemFont(ofSize: 14.0), range: titleRange)
-            statusBarItem.attributedTitle = attrTitle
-            
-        } else {
-            statusBarItem.title = title
         }
     }
 }

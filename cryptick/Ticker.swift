@@ -12,30 +12,29 @@ class Ticker: NSObject {
     
     // MARK: - Class Properties
     
+    var commodities: [Commodity]
+    
     private var tickTimer: Timer?
     private let inter: Double!
     private let callback: () -> Void!
-    private let commodities: [String]
-    
-    var isPriceUp: [String: Bool]
-    var prices: [String: String]
-    var stats: [String : Dictionary<String, String>]
-    var lastUpdate: Date?
+    private var lastUpdate: Date?
     
     // MARK: - Initializers
     
-    init(secInterval: Double, commodities: [String], tickCallback: @escaping () -> Void) {
-        self.prices = [:]
-        self.isPriceUp = [:]
-        self.stats = [:]
-        self.commodities = commodities
+    init(secInterval: Double, commodities: [(String, String)], tickCallback: @escaping () -> Void) {
         self.inter = secInterval
         self.callback = tickCallback
         self.lastUpdate = nil
+        
+        self.commodities = []
+        for c in commodities {
+            self.commodities.append(Commodity(name: c.0, symbol: Character(c.1)))
+        }
+        
         super.init()
     }
     
-    // MARK: - Public Control Methods
+    // MARK: - Timer Control Methods
     
     func start() {
         tickTimer = Timer.scheduledTimer(timeInterval: TimeInterval(inter),
@@ -52,14 +51,47 @@ class Ticker: NSObject {
         t.invalidate()
     }
     
+    // MARK: - Getter Methods
+    
+    func getLastUpdate() -> String {
+        if let d = lastUpdate {
+            let calendar = Calendar.current
+            let hour = calendar.component(.hour, from: d)
+            let minutes = calendar.component(.minute, from: d)
+            let seconds = calendar.component(.second, from: d)
+            return String(format: "Last Updated %02d:%02d:%02d", hour, minutes, seconds)
+        }
+        return ""
+    }
+    
+    func getLabel() -> String {
+        var label = ""
+        for c in commodities {
+            label += c.getLabel() + " | "
+        }
+        
+        return String(label.prefix(label.count-3))
+    }
+    
+    func getAttributedLabel() -> NSAttributedString {
+        let label = NSMutableAttributedString(string: "")
+        let separator = NSAttributedString(string: "  |  ")
+        for c in commodities {
+            label.append(c.getAttributedLabel())
+            label.append(separator)
+        }
+        
+        return label
+    }
+    
     // MARK: - Timer Methods
     
     @objc func tick() {
         // Use a semaphore to know when all data for all commods is in
         let semaphore = DispatchSemaphore(value: self.commodities.count)
         for c in commodities {
-            self.updatePrices(commodity: c) {
-                self.updateStats(commodity: c) {
+            c.updatePrice {
+                c.updateStats {
                     semaphore.signal()
                 }
             }
@@ -67,70 +99,5 @@ class Ticker: NSObject {
         semaphore.wait()
         lastUpdate = Date()
         callback()
-    }
-    
-    // MARK: - HTTP Methods
-    
-    private func updatePrices(commodity: String, completion: @escaping () -> Void) {
-        let url = URL(string: "https://api.gdax.com/products/" + commodity + "/ticker")!
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
-            
-            guard let data = data, error == nil else {
-                self.prices[commodity] = "Error"
-                completion()
-                return
-            }
-            
-            do {
-                let dict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-                if let price = dict?["price"] as? String, let p = Float(price) {
-                    
-                    // Did price go up or down
-                    if let pPrev = self.prices[commodity], let pp = Float(pPrev) {
-                        self.isPriceUp[commodity] = pp < p
-                    }
-                
-                    // Update Prices
-                    self.prices[commodity] = String(format: "%.2f", p)
-                    completion()
-                }
-            } catch {
-                print(error.localizedDescription)
-                self.prices[commodity] = "Error"
-                completion()
-            }
-        }
-        
-        task.resume()
-    }
-    
-    private func updateStats(commodity: String, completion: @escaping () -> Void) {
-        let url = URL(string: "https://api.gdax.com/products/" + commodity + "/stats")!
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
-            
-            guard let data = data, error == nil else {
-                self.prices[commodity] = "Error"
-                completion()
-                return
-            }
-            
-            do {
-                if var dict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: String] {
-                    for (k, v) in dict {
-                        if let p = Float(v) {
-                            dict[k]! = String(format: "%.2f", p)
-                        }
-                    }
-                    self.stats[commodity] = dict
-                }
-                completion()
-            } catch {
-                print(error.localizedDescription)
-                self.prices[commodity] = "Error"
-                completion()
-            }
-        }
-        
-        task.resume()
     }
 }
