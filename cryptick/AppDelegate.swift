@@ -28,9 +28,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         
-        var menuStats = [[NSMenuItem]]()
+        // Init Last Update
+        let lastUpdate = NSMenuItem(title: "Last Update: ", action: nil, keyEquivalent: "")
+        menu.addItem(lastUpdate)
+        menu.addItem(NSMenuItem.separator())
         
         // Init references to stats tickers
+        var menuStats = [[NSMenuItem]]()
         for c in COMMODITIES {
             let header = NSMenuItem(title: c.0 + " (24HR)", action: nil, keyEquivalent: "")
             let open = NSMenuItem(title: "Open: Loading" , action: nil, keyEquivalent: "")
@@ -40,12 +44,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             menuStats.append([open, high, low])
             
             // Add to menu items
-            self.menu.addItem(header)
-            self.menu.addItem(NSMenuItem.separator())
-            self.menu.addItem(open)
-            self.menu.addItem(high)
-            self.menu.addItem(low)
-            self.menu.addItem(NSMenuItem.separator())
+            menu.addItem(header)
+            menu.addItem(NSMenuItem.separator())
+            menu.addItem(open)
+            menu.addItem(high)
+            menu.addItem(low)
+            menu.addItem(NSMenuItem.separator())
         }
         
         // Init ticker and designate callback behavior
@@ -53,9 +57,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             // Update UI
             DispatchQueue.main.async {
-                for m in menuStats {
-                    // TODO
+                
+                // Update "Last Update"
+                lastUpdate.title = "Last Update: " + self.ticker.getLastUpdate()
+                
+                // Update stats menu
+                for i in 0..<menuStats.count {
+                    let c = self.ticker.commodities[i]
+                    let m = menuStats[i]
+                    
+                    m[0].title = "Open: " + c.open
+                    m[1].title = "High: " + c.high
+                    m[2].title = "Low: " + c.low
                 }
+                
+                // Update menu bar ticker
                 if self.COLORED_TICKER {
                     self.statusBarItem.attributedTitle = self.ticker.getAttributedLabel()
                 } else {
@@ -63,15 +79,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
-        
-        // Init Last Update
-        let lastUpdate = NSMenuItem(title: "Last Update: " + ticker.getLastUpdate(), action: nil, keyEquivalent: "")
-        menu.addItem(lastUpdate)
-        menu.addItem(NSMenuItem.separator())
 
         // Start ticker
-        ticker.start()
         ticker.tick()
+        ticker.start()
         
         // Add statusBarItem
         statusBarItem = statusBar.statusItem(withLength: -1)

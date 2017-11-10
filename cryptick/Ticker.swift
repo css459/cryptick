@@ -59,7 +59,7 @@ class Ticker: NSObject {
             let hour = calendar.component(.hour, from: d)
             let minutes = calendar.component(.minute, from: d)
             let seconds = calendar.component(.second, from: d)
-            return String(format: "Last Updated %02d:%02d:%02d", hour, minutes, seconds)
+            return String(format: "%02d:%02d:%02d", hour, minutes, seconds)
         }
         return ""
     }
@@ -81,7 +81,7 @@ class Ticker: NSObject {
             label.append(separator)
         }
         
-        return label
+        return label.attributedSubstring(from: NSMakeRange(0, label.length - separator.length))
     }
     
     // MARK: - Timer Methods
