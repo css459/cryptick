@@ -13,9 +13,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Constants
     
-    let UPDATE_TIME_SECONDS = 3.0
+    let UPDATE_TIME_SECONDS = 30.0
     let COMMODITIES = [("BTC-USD", "₿"), ("ETH-USD", "Ξ")]
-    let COLORED_TICKER = true
+    let COLORED_TICKER = false
     
     // MARK: - Class Properties
     
@@ -54,7 +54,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Init ticker and designate callback behavior
         ticker = Ticker(secInterval: UPDATE_TIME_SECONDS, commodities: COMMODITIES) {
-            
             // Update UI
             DispatchQueue.main.async {
                 
@@ -80,8 +79,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Start ticker
-        ticker.tick()
+        // Start ticker, and make initial tick (using Timer to avoid race condition)
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { _ in self.ticker.tick() }
         ticker.start()
         
         // Add statusBarItem

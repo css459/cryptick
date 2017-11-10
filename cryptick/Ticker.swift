@@ -69,7 +69,6 @@ class Ticker: NSObject {
         for c in commodities {
             label += c.getLabel() + " | "
         }
-        
         return String(label.prefix(label.count-3))
     }
     
