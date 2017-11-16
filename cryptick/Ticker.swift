@@ -18,7 +18,7 @@ class Ticker: NSObject {
     private let inter: Double!
     private let callback: () -> Void!
     private var lastUpdate: Date?
-    
+    private var rapidUpdating: Bool = false
     // MARK: - Initializers
     
     init(secInterval: Double, commodities: [(String, String)], tickCallback: @escaping () -> Void) {
@@ -49,6 +49,25 @@ class Ticker: NSObject {
     func stop() {
         guard let t = tickTimer else { return }
         t.invalidate()
+        tickTimer = nil
+    }
+    
+    private func startRapidUpdate() {
+        rapidUpdating = true
+        stop()
+        tickTimer = Timer.scheduledTimer(timeInterval: TimeInterval(1.0),
+                                         target: self,
+                                         selector: #selector(tick),
+                                         userInfo: nil,
+                                         repeats: true
+        )
+        tickTimer?.fire()
+    }
+    
+    private func stopRapidUpdate() {
+        rapidUpdating = false
+        stop()
+        start()
     }
     
     // MARK: - Getter Methods
@@ -86,17 +105,35 @@ class Ticker: NSObject {
     // MARK: - Timer Methods
     
     @objc func tick() {
-        // Use a semaphore to know when all data for all commods is in
-        let semaphore = DispatchSemaphore(value: self.commodities.count)
+        
+        // Use a dispatch group to know when all data for all commods is in
+        let g = DispatchGroup()
+        
+        // Error detection
+        var e = false
+        
         for c in commodities {
+            g.enter()
             c.updatePrice {
                 c.updateStats {
-                    semaphore.signal()
+                    e = c.price == "Error"
+                    g.leave()
                 }
             }
         }
-        semaphore.wait()
-        lastUpdate = Date()
-        callback()
+        
+        g.notify(queue: DispatchQueue.main) {
+            
+            // If error, start rapid updating to recover quickly
+            if e && !self.rapidUpdating {
+                self.startRapidUpdate()
+            }
+            else if !e && self.rapidUpdating {
+                self.stopRapidUpdate()
+            }
+            
+            self.lastUpdate = Date()
+            self.callback()
+        }
     }
 }

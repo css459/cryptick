@@ -88,6 +88,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusBarItem.title = ticker.getLabel()
         statusBarItem.menu = menu
         
+        // Add Menu Item (Update Now)
+        let updateNow = NSMenuItem(title: "Update Now", action: #selector(AppDelegate.update), keyEquivalent: "")
+        menu.addItem(updateNow)
+        
         // Add Menu Item (Quit and Open GDAX)
         let quitItem = NSMenuItem(title: "Quit", action: #selector(AppDelegate.quit), keyEquivalent: "")
         let gdaxItem = NSMenuItem(title: "Open GDAX", action: #selector(AppDelegate.openGDAX), keyEquivalent: "")
@@ -107,6 +111,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let url = URL(string: "https://www.gdax.com/trade/BTC-USD") {
             NSWorkspace.shared.open(url)
         }
+    }
+    
+    @objc func update() {
+        ticker.tick()
     }
 }
 
