@@ -15,7 +15,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     let UPDATE_TIME_SECONDS = 30.0
     let COMMODITIES = [("BTC-USD", "₿"), ("ETH-USD", "Ξ"), ("XRP-USD", "XRP")]
-    let COLORED_TICKER = false
+    var colored_ticker = false
     
     // MARK: - Class Properties
     
@@ -74,7 +74,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 
                 // Update menu bar ticker
-                if self.COLORED_TICKER {
+                if self.colored_ticker {
                     self.statusBarItem.attributedTitle = self.ticker.getAttributedLabel()
                 } else {
                     self.statusBarItem.title = self.ticker.getLabel()
@@ -94,6 +94,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Add Menu Item (Update Now)
         let updateNow = NSMenuItem(title: "Update Now", action: #selector(AppDelegate.update), keyEquivalent: "")
         menu.addItem(updateNow)
+        
+        // Add Menu Item (Switch ticker type)
+        let switchTicker = NSMenuItem(title: "Switch Ticker Style", action: #selector(AppDelegate.switchTicker), keyEquivalent: "")
+        menu.addItem(switchTicker)
         
         // Add Menu Item (Quit and Open GDAX)
         let quitItem = NSMenuItem(title: "Quit", action: #selector(AppDelegate.quit), keyEquivalent: "")
@@ -117,6 +121,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func update() {
+        ticker.tick()
+    }
+    
+    @objc func switchTicker() {
+        colored_ticker = !colored_ticker
         ticker.tick()
     }
 }
