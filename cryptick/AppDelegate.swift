@@ -14,7 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Constants
     
     let UPDATE_TIME_SECONDS = 30.0
-    let COMMODITIES = [("BTC-USD", "₿"), ("ETH-USD", "Ξ")]
+    let COMMODITIES = [("BTC-USD", "₿"), ("ETH-USD", "Ξ"), ("XRP-USD", "XRP")]
     let COLORED_TICKER = false
     
     // MARK: - Class Properties
@@ -42,6 +42,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let low = NSMenuItem(title: "Low: Loading", action: nil, keyEquivalent: "")
             
             menuStats.append([open, high, low])
+            
+            // Check for ripple
+            if c.1 == "XRP" { continue }
             
             // Add to menu items
             menu.addItem(header)

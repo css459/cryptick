@@ -11,7 +11,7 @@ import Cocoa
 class Commodity: NSObject, NSUserNotificationCenterDelegate {
     
     let name: String
-    let symbol: Character
+    let symbol: String
     
     var price: String
     var open: String
@@ -23,7 +23,7 @@ class Commodity: NSObject, NSUserNotificationCenterDelegate {
     
     var priceWatch: (Double, Bool)?
     
-    init(name: String, symbol: Character) {
+    init(name: String, symbol: String) {
         
         self.name = name
         self.symbol = symbol
@@ -97,6 +97,15 @@ class Commodity: NSObject, NSUserNotificationCenterDelegate {
     // MARK: - Value Update Methods
     
     func updatePrice(completion: @escaping () -> Void) {
+        
+        // Check for ripple
+        if symbol == "XRP" {
+            updatePriceRipple {
+                completion()
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.gdax.com/products/" + name + "/ticker")!
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             
@@ -131,6 +140,15 @@ class Commodity: NSObject, NSUserNotificationCenterDelegate {
     }
     
     func updateStats(completion: @escaping () -> Void) {
+        
+        // Check for ripple
+        if symbol == "XRP" {
+            updateStatsRipple {
+                completion()
+            }
+            return
+        }
+        
         let url = URL(string: "https://api.gdax.com/products/" + name + "/stats")!
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             
@@ -170,5 +188,48 @@ class Commodity: NSObject, NSUserNotificationCenterDelegate {
         }
         
         task.resume()
+    }
+    
+    // MARK: - Temporary Ripple Support (Until a better method is found)
+    
+    // Adds Ripple Support
+    func updatePriceRipple(completion: @escaping () -> Void) {
+        let url = URL(string:"https://api.coinmarketcap.com/v1/ticker/ripple/?convert=USD")!
+        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+            
+            guard let data = data, error == nil else {
+                self.price = "Error"
+                completion()
+                return
+            }
+            
+            do {
+                let dict = (try JSONSerialization.jsonObject(with: data, options: []) as! [Any])[0] as! [String: Any]
+                if let price = dict["price_usd"] as? String, let p = Float(price) {
+                    // Check if price went up or down
+                    if self.price != "Loading", let pp = Float(self.price) {
+                        self.priceChange = p - pp
+                    }
+
+                    // Update Prices and check price watch
+                    self.price = String(format: "%.4f", p)
+                    self.checkPriceWatch()
+                    completion()
+                }
+            } catch {
+                print(error.localizedDescription)
+                self.price = "Error"
+                completion()
+            }
+        }
+        
+        task.resume()
+    }
+    
+    func updateStatsRipple(completion: @escaping () -> Void) {
+        open = "Not Available"
+        high = "Not Available"
+        low = "Not Available"
+        completion()
     }
 }

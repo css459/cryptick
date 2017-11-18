@@ -28,7 +28,7 @@ class Ticker: NSObject {
         
         self.commodities = []
         for c in commodities {
-            self.commodities.append(Commodity(name: c.0, symbol: Character(c.1)))
+            self.commodities.append(Commodity(name: c.0, symbol: c.1))
         }
         
         super.init()
