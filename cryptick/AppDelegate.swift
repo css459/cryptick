@@ -14,8 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Constants
     
     let UPDATE_TIME_SECONDS = 30.0
-    let COMMODITIES = [("BTC-USD", "₿"), ("ETH-USD", "Ξ"), ("XRP-USD", "XRP")]
-    var colored_ticker = false
+    let COMMODITIES = [("BTC", "₿"), ("ETH", "Ξ"), ("XRP", "XRP")]
     
     // MARK: - Class Properties
     
@@ -23,6 +22,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusBarItem : NSStatusItem = NSStatusItem()
     var menu: NSMenu = NSMenu()
     var menuItem : NSMenuItem = NSMenuItem()
+    var colored_ticker = false
+    var baseCurrency = BaseCurrency.usd
     
     var ticker: Ticker!
 
@@ -41,7 +42,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let high = NSMenuItem(title: "High: Loading", action: nil, keyEquivalent: "")
             let low = NSMenuItem(title: "Low: Loading", action: nil, keyEquivalent: "")
             
-            menuStats.append([open, high, low])
+            menuStats.append([header, open, high, low])
             
             // Check for ripple
             if c.1 == "XRP" { continue }
@@ -56,21 +57,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         // Init ticker and designate callback behavior
-        ticker = Ticker(secInterval: UPDATE_TIME_SECONDS, commodities: COMMODITIES) {
+        ticker = Ticker(secInterval: UPDATE_TIME_SECONDS, commodities: COMMODITIES, baseCurrency: baseCurrency) {
             // Update UI
             DispatchQueue.main.async {
                 
                 // Update "Last Update"
-                lastUpdate.title = "Last Update: " + self.ticker.getLastUpdate()
+                lastUpdate.title = "Last Update: " + self.ticker.getLastUpdate()  + self.ticker.baseCurrency.rawValue
                 
                 // Update stats menu
                 for i in 0..<menuStats.count {
                     let c = self.ticker.commodities[i]
                     let m = menuStats[i]
-                    
-                    m[0].title = "Open: " + c.open
-                    m[1].title = "High: " + c.high
-                    m[2].title = "Low: " + c.low
+                    m[0].title = c.name + " (24HR)"
+                    m[1].title = "Open: " + c.open
+                    m[2].title = "High: " + c.high
+                    m[3].title = "Low: " + c.low
                 }
                 
                 // Update menu bar ticker
@@ -99,6 +100,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let switchTicker = NSMenuItem(title: "Switch Ticker Style", action: #selector(AppDelegate.switchTicker), keyEquivalent: "")
         menu.addItem(switchTicker)
         
+        // Add Menu Item (Switch Base Currency)
+        let switchBase = NSMenuItem(title: "Switch Base Currency", action: #selector(AppDelegate.switchBaseCurrency), keyEquivalent: "")
+        menu.addItem(switchBase)
+        
         // Add Menu Item (Quit and Open GDAX)
         let quitItem = NSMenuItem(title: "Quit", action: #selector(AppDelegate.quit), keyEquivalent: "")
         let gdaxItem = NSMenuItem(title: "Open GDAX", action: #selector(AppDelegate.openGDAX), keyEquivalent: "")
@@ -110,12 +115,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ticker.stop()
     }
     
+    // MARK: - Button Callbacks
+    
     @objc func quit() {
         NSApplication.shared.terminate(self)
     }
     
     @objc func openGDAX() {
-        if let url = URL(string: "https://www.gdax.com/trade/BTC-USD") {
+        var b = BaseCurrency.usd
+        if baseCurrency == .eur { b = .eur }
+        if let url = URL(string: "https://www.gdax.com/trade/" + "BTC" + b.rawValue) {
             NSWorkspace.shared.open(url)
         }
     }
@@ -128,5 +137,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         colored_ticker = !colored_ticker
         ticker.tick()
     }
+    
+    @objc func switchBaseCurrency() {
+        let i = (ticker.baseCurrency.asInt() + 1) % 2 // Only use USD and EUR for now (for BTC: % 3)
+        let n = BaseCurrency.withInt(i: i)
+        ticker.setBaseCurrency(base: n)
+    }
 }
-

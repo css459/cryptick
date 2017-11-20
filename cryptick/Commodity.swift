@@ -194,7 +194,8 @@ class Commodity: NSObject, NSUserNotificationCenterDelegate {
     
     // Adds Ripple Support
     func updatePriceRipple(completion: @escaping () -> Void) {
-        let url = URL(string:"https://api.coinmarketcap.com/v1/ticker/ripple/?convert=USD")!
+        let base = name.suffix(3).lowercased()
+        let url = URL(string:"https://api.coinmarketcap.com/v1/ticker/ripple/?convert=" + base)!
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             
             guard let data = data, error == nil else {
@@ -205,7 +206,7 @@ class Commodity: NSObject, NSUserNotificationCenterDelegate {
             
             do {
                 let dict = (try JSONSerialization.jsonObject(with: data, options: []) as! [Any])[0] as! [String: Any]
-                if let price = dict["price_usd"] as? String, let p = Float(price) {
+                if let price = dict["price_" + base] as? String, let p = Float(price) {
                     // Check if price went up or down
                     if self.price != "Loading", let pp = Float(self.price) {
                         self.priceChange = p - pp

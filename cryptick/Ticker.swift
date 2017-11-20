@@ -14,21 +14,36 @@ class Ticker: NSObject {
     
     var commodities: [Commodity]
     
+    private var rawCommodities: [(String, String)]
     private var tickTimer: Timer?
     private let inter: Double!
     private let callback: () -> Void!
     private var lastUpdate: Date?
     private var rapidUpdating: Bool = false
+    
+    private(set) var baseCurrency: BaseCurrency
+    private var fallbackBaseCurrency: BaseCurrency
+    
     // MARK: - Initializers
     
-    init(secInterval: Double, commodities: [(String, String)], tickCallback: @escaping () -> Void) {
+    init(secInterval: Double, commodities: [(String, String)], baseCurrency: BaseCurrency, tickCallback: @escaping () -> Void) {
         self.inter = secInterval
         self.callback = tickCallback
         self.lastUpdate = nil
         
+        self.baseCurrency = baseCurrency
+        
+        if baseCurrency != .usd || baseCurrency != .eur {
+            self.fallbackBaseCurrency = .usd
+        } else {
+            self.fallbackBaseCurrency = baseCurrency
+        }
+        
+        self.rawCommodities = commodities
         self.commodities = []
         for c in commodities {
-            self.commodities.append(Commodity(name: c.0, symbol: c.1))
+            let name = BaseCurrency.commodityWithBaseCurrency(commodity: c.0, base: baseCurrency, fallback: fallbackBaseCurrency)
+            self.commodities.append(Commodity(name: name , symbol: c.1))
         }
         
         super.init()
@@ -102,6 +117,36 @@ class Ticker: NSObject {
         return label.attributedSubstring(from: NSMakeRange(0, label.length - separator.length))
     }
     
+    // MARK: - Setter Methods
+    
+    func setBaseCurrency(base: BaseCurrency) {
+        
+        // Handle case that BTC can be a commodity and
+        // also a base currency. Leverage fallback if
+        // base-commodity pair is BTC-BTC
+        
+        // We need a fallback
+        if base == .btc {
+            if baseCurrency != .btc {
+                fallbackBaseCurrency = baseCurrency
+            } else {
+                // Absolute Fallback: USD
+                fallbackBaseCurrency = .usd
+            }
+        }
+        
+        baseCurrency = base
+        
+        var newCommodities = [Commodity]()
+        for c in rawCommodities {
+            let name = BaseCurrency.commodityWithBaseCurrency(commodity: c.0, base: baseCurrency, fallback: fallbackBaseCurrency)
+            newCommodities.append(Commodity(name: name , symbol: c.1))
+        }
+        commodities = newCommodities
+        
+        tick()
+    }
+    
     // MARK: - Timer Methods
     
     @objc func tick() {
@@ -134,6 +179,52 @@ class Ticker: NSObject {
             
             self.lastUpdate = Date()
             self.callback()
+        }
+    }
+}
+
+enum BaseCurrency: String {
+    case usd = "-USD"
+    case eur = "-EUR"
+    case btc = "-BTC"
+    
+    func asInt() -> UInt {
+        switch self {
+        case .usd:
+            return 0
+        case .eur:
+            return 1
+        case .btc:
+            return 2
+        }
+    }
+    
+    static func withInt(i: UInt) -> BaseCurrency {
+        switch i {
+        case 0:
+            return .usd
+        case 1:
+            return .eur
+        case 2:
+            return .btc
+        default:
+            return .usd
+        }
+    }
+    
+    static func commodityWithBaseCurrency(commodity: String, base: BaseCurrency, fallback: BaseCurrency) -> String {
+        switch base {
+        case .usd:
+            return commodity + "-USD"
+        case .eur:
+            return commodity + "-EUR"
+        case .btc:
+            // Cannot have BTC-BTC, use fallback
+            if commodity == "BTC" {
+                return commodity + "-" + fallback.rawValue
+            } else {
+                return commodity + "-BTC"
+            }
         }
     }
 }
