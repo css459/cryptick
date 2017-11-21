@@ -20,13 +20,3 @@ Enjoy!
 * Manual Updating
 * Colored Ticker Style
 * EUR base currency
-
-## Donating
-
-If you like Cryptick and want to support its development, you can deposit BTC to our tip jar!
-
-`12Kwx85XzbawEiNPuWNgLTZp8TyY4njArE`
-
-CrypTick is, and will always be, open source and free to use.
-
-[Icon Source](http://imgarcade.com/bitcoin-icon.html)
